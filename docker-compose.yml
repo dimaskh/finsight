@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  backend:
+  finsight-backend:
     build: 
       context: ./backend
       dockerfile: Dockerfile
@@ -10,14 +10,16 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/finsight
+      - DATABASE_URL=postgresql://postgres:postgres@finsight-db:5432/finsight
+      - CELERY_BROKER_URL=redis://finsight-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://finsight-redis:6379/0
       - DEBUG=1
       - SECRET_KEY=your-secret-key-here
     depends_on:
-      - db
-    command: python manage.py runserver 0.0.0.0:8000
+      - finsight-db
+      - finsight-redis
 
-  frontend:
+  finsight-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -25,12 +27,12 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "3000:3000"
+      - "5173:5173"
     environment:
       - NODE_ENV=development
     command: npm run dev -- --host
 
-  db:
+  finsight-db:
     image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -41,5 +43,13 @@ services:
     ports:
       - "5432:5432"
 
+  finsight-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  redis_data:
